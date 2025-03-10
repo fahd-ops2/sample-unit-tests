@@ -1,6 +1,6 @@
-# Spring Boot CRUD Application
+x# Spring Boot CRUD Application with Comprehensive Testing
 
-This project demonstrates how to create a CRUD (Create, Read, Update, Delete) application using Spring Boot, MySQL, and Spring Data JPA with a `Person` entity.
+This project demonstrates the implementation of a CRUD (Create, Read, Update, Delete) application using Spring Boot, MySQL, and Spring Data JPA with a `Person` entity. It emphasizes a comprehensive testing strategy, utilizing `@DataJpaTest` for repository testing and Mockito for service and controller testing.
 
 ## Table of Contents
 
@@ -9,6 +9,11 @@ This project demonstrates how to create a CRUD (Create, Read, Update, Delete) ap
 - [Running the Application](#running-the-application)
 - [API Endpoints](#api-endpoints)
 - [Postman Collection](#postman-collection)
+- [Testing Strategy](#testing-strategy)
+  - [Repository Testing with @DataJpaTest](#repository-testing-with-datajpatest)
+  - [Service Testing with Mockito](#service-testing-with-mockito)
+  - [Controller Testing with MockMvc](#controller-testing-with-mockmvc)
+- [Running Tests](#running-tests)
 - [Technologies Used](#technologies-used)
 
 ## Prerequisites
@@ -24,97 +29,191 @@ Before you begin, ensure you have the following installed on your machine:
 
 1. **Clone the repository:**
 
-    ```sh
-    git clone https://github.com/codingwitharmand/crud-springboot.git
-    cd crud-springboot
+    ```bash
+    git clone https://github.com/fahd-ops2/sample-unit-tests.git
+    cd sample-unit-tests
     ```
 
 2. **Create a MySQL database:**
 
     ```sql
-    CREATE DATABASE crud-springboot;
+    CREATE DATABASE crud_springboot;
     ```
 
 3. **Configure the database connection:**
 
-   Open `src/main/resources/application.properties` and configure the following properties with your MySQL credentials:
+    Open `src/main/resources/application.properties` and configure the following properties with your MySQL credentials:
 
     ```properties
-   spring.datasource.url=jdbc:mysql://localhost:3306/crud-springboot
-   spring.datasource.username=<your_user>
-   spring.datasource.password=<your_user_password>
-   spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-   spring.jpa.hibernate.ddl-auto=update
-   spring.jpa.show-sql=true
-   spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
-    ```
-
-4. **Install dependencies and build the project:**
-
-    ```sh
-    mvn clean install
+    spring.datasource.url=jdbc:mysql://localhost:3306/crud_springboot
+    spring.datasource.username=your_username
+    spring.datasource.password=your_password
+    spring.jpa.hibernate.ddl-auto=update
     ```
 
 ## Running the Application
 
-1. **Run the Spring Boot application:**
+Use Maven to build and run the application:
 
-    ```sh
-    ./mvnw spring-boot:run
-    ```
+```bash
+mvn spring-boot:run
+```
 
-2. The application will start and run on `http://localhost:8080`.
+The application will start and be accessible at `http://localhost:8080`.
 
 ## API Endpoints
 
-The following endpoints are available for the CRUD operations on the `Person` entity:
+The application provides the following RESTful API endpoints for managing `Person` entities:
 
-- **GET /api/persons**
-    - Retrieve a list of all persons.
-
-- **GET /api/persons/{id}**
-    - Retrieve a single person by ID.
-
-- **POST /api/persons**
-    - Create a new person.
-    - Example request body:
-      ```json
-      {
-          "name": "John Doe",
-          "city": "Los Angeles",
-          "phoneNumber" : "999-777-444"
-      }
-      ```
-
-- **PUT /api/persons/{id}**
-    - Update an existing person by ID.
-    - Example request body:
-      ```json
-      {
-          "city": "New York",
-          "phoneNumber" : "999-777-444"
-      }
-      ```
-
-- **DELETE /api/persons/{id}**
-    - Delete a person by ID.
+- **GET /api/persons**: Retrieve all persons.
+- **GET /api/persons/{id}**: Retrieve a person by ID.
+- **POST /api/persons**: Create a new person.
+- **PUT /api/persons/{id}**: Update an existing person by ID.
+- **DELETE /api/persons/{id}**: Delete a person by ID.
 
 ## Postman Collection
 
-A Postman collection to test each endpoint is included at the root of the project folder. You can import this collection into Postman to quickly test the API.
+A Postman collection named `CRUD.postman_collection.json` is included in the repository. This collection contains pre-configured requests to test the API endpoints. To use it:
 
-## Technologies Used
+1. Open Postman.
+2. Import the `CRUD.postman_collection.json` file.
+3. Execute the requests to interact with the API.
 
-- **Spring Boot:** A framework to simplify the bootstrapping and development of new Spring applications.
-- **Spring Data JPA:** A part of the larger Spring Data family to easily implement JPA-based repositories.
-- **MySQL:** A relational database management system.
-- **Maven:** A build automation tool used primarily for Java projects.
+## Testing Strategy
 
-## Contributing
+This project adopts a layered testing approach to ensure the reliability and correctness of each component.
 
-Contributions are welcome! Please open an issue or submit a pull request for any improvements or suggestions.
+### Repository Testing with @DataJpaTest
 
+`@DataJpaTest` is used to test JPA repositories. It configures an in-memory database, scans for `@Entity` classes, and sets up Spring Data JPA repositories. Tests are transactional and roll back at the end of each execution, ensuring a clean state.
 
----
+**Example:**
 
-Happy coding!
+```java
+package io.fahd.unittests.repository;
+
+import io.fahd.unittests.entity.Person;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@DataJpaTest
+public class PersonRepositoryTest {
+
+    @Autowired
+    private PersonRepository personRepository;
+
+    @Test
+    public void testSaveAndFindById() {
+        Person person = new Person(null, "John Doe", "New York", "123456789");
+        Person savedPerson = personRepository.save(person);
+        Optional<Person> retrievedPerson = personRepository.findById(savedPerson.getId());
+        assertThat(retrievedPerson).isPresent().contains(savedPerson);
+    }
+}
+```
+
+### Service Testing with Mockito
+
+Mockito is employed to mock dependencies, allowing isolated testing of the service layer's business logic without involving actual database operations.
+
+**Example:**
+
+```java
+package io.fahd.unittests.service;
+
+import io.fahd.unittests.entity.Person;
+import io.fahd.unittests.repository.PersonRepository;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+
+public class PersonServiceTest {
+
+    @Mock
+    private PersonRepository personRepository;
+
+    @InjectMocks
+    private PersonService personService;
+
+    public PersonServiceTest() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    public void testGetPersonById() {
+        Person person = new Person(1L, "Jane Doe", "Los Angeles", "987654321");
+        when(personRepository.findById(1L)).thenReturn(Optional.of(person));
+        Optional<Person> retrievedPerson = personService.getPersonById(1L);
+        assertThat(retrievedPerson).isPresent().contains(person);
+    }
+}
+```
+
+### Controller Testing with MockMvc
+
+`MockMvc` is utilized to test the web layer (controllers) without starting the full HTTP server. It allows sending mock HTTP requests and verifying responses.
+
+**Example:**
+
+```java
+package io.fahd.unittests.controller;
+
+import io.fahd.unittests.entity.Person;
+import io.fahd.unittests.service.PersonService;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.Arrays;
+
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(PersonController.class)
+public class PersonControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private PersonService personService;
+
+    @Test
+    public void testGetAllPersons() throws Exception {
+        Person person1 = new Person(1L, "John Doe", "New York", "123456789");
+        Person person2 = new Person(2L, "Jane Doe", "Los Angeles", "987654321");
+        when(personService.getAllPersons()).thenReturn(Arrays.asList(person1, person2));
+
+        mockMvc.perform(get("/api/persons"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("John Doe"))
+                .andExpect(jsonPath("$[1].name").value("Jane Doe"));
+    }
+}
+```
+
+## Running Tests
+
+To execute the tests, run the following command:
+
+```bash
+mvn test
+```
+
+This command will compile and run all tests, providing a summary of the results.
