@@ -1,0 +1,5 @@
+io/fahd/unittests/CrudSpringbootApplication.class
+io/fahd/unittests/repository/PersonRepository.class
+io/fahd/unittests/controller/PersonController.class
+io/fahd/unittests/entity/Person.class
+io/fahd/unittests/service/PersonService.class
